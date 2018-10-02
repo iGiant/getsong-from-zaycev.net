@@ -1,4 +1,4 @@
-# getsong_from_zaycev_net
+# getsong-from-zaycev.net
 Скачивание песен с сайта zaycev.net
 
 `getsong.py <что ищем> =l` - вывод списка доступных композиций
