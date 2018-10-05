@@ -3,6 +3,7 @@ from requests import get, head
 from lxml import html
 from os.path import exists
 from fake_useragent import UserAgent
+from mutagen.id3 import ID3, TIT2, TALB, COMM
 
 
 def get_num(value: str)-> tuple:
@@ -70,6 +71,12 @@ def get_song(*args, **kwargs):
                         print(f"\r{' ' * (len(text) + 2)}", end='', flush=True)
                         print(text, end='', flush=True)
                         file.write(chunk)
+                audio = ID3(title)
+                song_name = audio['TIT2'][0][:-13]
+                audio.add(TIT2(text=song_name))
+                audio.add(TALB(text=''))
+                audio.add(COMM(lang='eng', text=''))
+                audio.save()
                 print(f"\rЗагружено: {number}{title}     ")
             i += 1
     else:
