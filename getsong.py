@@ -46,41 +46,44 @@ def get_song(*args, **kwargs):
     if list_out:
         print('Доступные композиции:')
     if links:
+        i = 1
         shift = 0
-        i = begin
-        while i <= end + shift:
-            url = get(f'{url_base}{links[i-1]}').json()['url']
+        while True:
+            url = get(f'{url_base}{links[i - 1]}').json()['url']
             presence = head(url)
             if presence.status_code != 200 and presence.headers.get('Content-Type') != 'audio/mpeg':
                 i += 1
-                shift += 1
                 continue
-            title = f'{artists[i-1].strip()} – {songs[i-1].strip()}.mp3'
-            size = round(int(presence.headers.get('Content-Length', '0')) / 1048576, 1)
-            if list_out:
-                print(f'{i + 1 - begin - shift}. {title} ({size} Мб)')
-            else:
-                while exists(title):
-                    title = '_' + title
-                number = '' if begin == end else f"{i + 1 - begin - shift}."
-                print(f"Загружается: {number}{title}", end='', flush=True)
-                song = get(url, stream=True)
-                with open(title, 'wb') as file:
-                    for index, chunk in enumerate(song.iter_content(1048576)):
-                        text = f"\rЗагружается: {number}{title}{'.' * (index % 4)}"
-                        print(f"\r{' ' * (len(text) + 2)}", end='', flush=True)
-                        print(text, end='', flush=True)
-                        file.write(chunk)
-                audio = ID3(title)
-                song_name = audio['TIT2'][0][:-13]
-                audio.add(TIT2(text=song_name))
-                audio.add(TALB(text=''))
-                audio.add(COMM(lang='eng', text=''))
-                audio.save()
-                print(f"\rЗагружено: {number}{title}     ")
+            shift += 1
+            if shift >= begin:
+                title = f'{artists[i-1].strip()} – {songs[i-1].strip()}.mp3'
+                size = round(int(presence.headers.get('Content-Length', '0')) / 1048576, 1)
+                if list_out:
+                    print(f'{shift}. {title} ({size} Мб)')
+                else:
+                    while exists(title):
+                        title = '_' + title
+                    number = '' if begin == end else f"{shift}."
+                    print(f"Загружается: {number}{title}", end='', flush=True)
+                    song = get(url, stream=True)
+                    with open(title, 'wb') as file:
+                        for index, chunk in enumerate(song.iter_content(1048576)):
+                            text = f"\rЗагружается: {number}{title}{'.' * (index % 4)}"
+                            print(f"\r{' ' * (len(text) + 2)}", end='', flush=True)
+                            print(text, end='', flush=True)
+                            file.write(chunk)
+                    audio = ID3(title)
+                    song_name = audio['TIT2'][0][:-13]
+                    audio.add(TIT2(text=song_name))
+                    audio.add(TALB(text=''))
+                    audio.add(COMM(lang='eng', text=''))
+                    audio.save()
+                    print(f"\rЗагружено: {number}{title}     ")
+            if shift >= end or i >=len(links):
+                break
             i += 1
-    else:
-        exit(2)
+    # else:
+    #     exit(2)
 
 
 if __name__ == '__main__':
