@@ -89,11 +89,4 @@ def get_song(show, download, name):
 
 
 if __name__ == '__main__':
-    # if len(argv) > 1:
-    #     if '=' in argv[-1]:
-    #         get_song(*argv[1:-1], count=get_num(argv[-1].split('=')[-1]))
-    #     else:
-    #         get_song(*argv[1:], count=('1', '1'))
-    # else:
-    #     get_song(*'', count=get_num('l',))
     get_song()
