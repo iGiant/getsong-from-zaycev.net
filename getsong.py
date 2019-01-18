@@ -3,6 +3,7 @@ from requests import get, head
 from lxml import html
 from os.path import exists
 from fake_useragent import UserAgent
+from click import command, option, argument
 from mutagen.id3 import ID3, TIT2, TALB, COMM
 
 
@@ -18,10 +19,12 @@ def get_num(value: str)-> tuple:
         return value, value
     return '-1', '-1'
 
-
-def get_song(*args, **kwargs):
-    begin = int(kwargs.get('count', ('1', '1'))[0])
-    end = int(kwargs.get('count', ('1', '1'))[1])
+@command()
+@option('-s', '--show', required=False, is_flag=True, help='Вывести список композиций')
+@option('-d','--download', default='-', required=False, help='список скачиваемых композиций в формате <Start>:<End>')
+@argument('name', nargs=-1)
+def get_song(show, download, name):
+    begin, end = [int(value) for value in get_num(download)]
     url_base = "http://zaycev.net"
     url_add = ''
     ua = UserAgent()
@@ -29,21 +32,20 @@ def get_song(*args, **kwargs):
         'User-Agent':
             ua.random}
     param = None
-    if args:
+    if name:
         url_add = "search.html"
-        query = '+'.join(args)
+        query = '+'.join(name)
         param = {"query_search": query}
     http = get(f'{url_base}/{url_add}', headers=header, params=param)
     response = html.fromstring(http.text)
     links = response.xpath('//div[@data-rbt-content-id]/@data-url')
     artists = response.xpath('//*[@itemprop="byArtist"]/a/text()')
     songs = response.xpath('//*[@itemprop="name"]/a/text()')
-    list_out = begin == -1 and end == -1
     begin = max(begin, 1)
     if end == -1 or end > len(songs):
         end = len(songs)
     begin = min(begin, end)
-    if list_out:
+    if show:
         print('Доступные композиции:')
     if links:
         i = 1
@@ -58,7 +60,7 @@ def get_song(*args, **kwargs):
             if shift >= begin:
                 title = f'{artists[i-1].strip()} – {songs[i-1].strip()}.mp3'
                 size = round(int(presence.headers.get('Content-Length', '0')) / 1048576, 1)
-                if list_out:
+                if show:
                     print(f'{shift}. {title} ({size} Мб)')
                 else:
                     while exists(title):
@@ -87,10 +89,11 @@ def get_song(*args, **kwargs):
 
 
 if __name__ == '__main__':
-    if len(argv) > 1:
-        if '=' in argv[-1]:
-            get_song(*argv[1:-1], count=get_num(argv[-1].split('=')[-1]))
-        else:
-            get_song(*argv[1:], count=('1', '1'))
-    else:
-        get_song(*'', count=get_num('l',))
+    # if len(argv) > 1:
+    #     if '=' in argv[-1]:
+    #         get_song(*argv[1:-1], count=get_num(argv[-1].split('=')[-1]))
+    #     else:
+    #         get_song(*argv[1:], count=('1', '1'))
+    # else:
+    #     get_song(*'', count=get_num('l',))
+    get_song()
