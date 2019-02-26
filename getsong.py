@@ -1,4 +1,4 @@
-from requests import get, head
+from requests import get, head, Response
 from lxml import html
 from os.path import exists
 from fake_useragent import UserAgent
@@ -7,7 +7,7 @@ from mutagen.id3 import ID3, TIT2, TALB, COMM
 from mutagen.id3._util import ID3NoHeaderError
 
 
-def get_num(value: str)-> tuple:
+def get_num(value: str) -> tuple:
     if '-' in value:
         begin, end = value.split('-')
         if not begin:
@@ -19,9 +19,19 @@ def get_num(value: str)-> tuple:
         return value, value
     return '-1', '-1'
 
+
+def save_song_to_file(song_title: str, content: Response, number: str):
+    with open(song_title, 'wb') as file:
+        for index, chunk in enumerate(content.iter_content(1048576)):
+            text = f"\rЗагружается: {number}{song_title}{'.' * (index % 4)}"
+            print(f"\r{' ' * (len(text) + 2)}", end='', flush=True)
+            print(text, end='', flush=True)
+            file.write(chunk)
+
+
 @command()
 @option('-s', '--show', required=False, is_flag=True, help='Вывести список композиций')
-@option('-d','--download', default='-', required=False, help='список скачиваемых композиций в формате <Start>:<End>')
+@option('-d', '--download', default='-', required=False, help='список скачиваемых композиций в формате <Start>:<End>')
 @argument('name', nargs=-1)
 def get_song(show, download, name):
     begin, end = [int(value) for value in get_num(download)]
@@ -69,23 +79,20 @@ def get_song(show, download, name):
                     number = '' if begin == end else f"{shift}."
                     print(f"Загружается: {number}{title}", end='', flush=True)
                     song = get(url, stream=True)
-                    with open(title, 'wb') as file:
-                        for index, chunk in enumerate(song.iter_content(1048576)):
-                            text = f"\rЗагружается: {number}{title}{'.' * (index % 4)}"
-                            print(f"\r{' ' * (len(text) + 2)}", end='', flush=True)
-                            print(text, end='', flush=True)
-                            file.write(chunk)
+                    save_song_to_file(title, song, number)
                     try:
                         audio = ID3(title)
+                    except ID3NoHeaderError:
+                        pass
+                    else:
                         song_name = audio['TIT2'][0][:-13]
                         audio.add(TIT2(text=song_name))
                         audio.add(TALB(text=''))
                         audio.add(COMM(lang='eng', text=''))
                         audio.save()
-                    except ID3NoHeaderError:
-                        pass
+
                     print(f"\rЗагружено: {number}{title}     ")
-            if shift >= end or i >=len(links):
+            if shift >= end or i >= len(links):
                 break
             i += 1
 
