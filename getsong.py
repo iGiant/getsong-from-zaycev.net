@@ -1,10 +1,10 @@
-from sys import argv
 from requests import get, head
 from lxml import html
 from os.path import exists
 from fake_useragent import UserAgent
 from click import command, option, argument
 from mutagen.id3 import ID3, TIT2, TALB, COMM
+from mutagen.id3._util import ID3NoHeaderError
 
 
 def get_num(value: str)-> tuple:
@@ -63,6 +63,7 @@ def get_song(show, download, name):
                 if show:
                     print(f'{shift}. {title} ({size} Мб)')
                 else:
+                    title = title.replace(':', ' ').replace('\\', ' ').replace('*', ' ').replace('  ', ' ')
                     while exists(title):
                         title = '_' + title
                     number = '' if begin == end else f"{shift}."
@@ -74,18 +75,19 @@ def get_song(show, download, name):
                             print(f"\r{' ' * (len(text) + 2)}", end='', flush=True)
                             print(text, end='', flush=True)
                             file.write(chunk)
-                    audio = ID3(title)
-                    song_name = audio['TIT2'][0][:-13]
-                    audio.add(TIT2(text=song_name))
-                    audio.add(TALB(text=''))
-                    audio.add(COMM(lang='eng', text=''))
-                    audio.save()
+                    try:
+                        audio = ID3(title)
+                        song_name = audio['TIT2'][0][:-13]
+                        audio.add(TIT2(text=song_name))
+                        audio.add(TALB(text=''))
+                        audio.add(COMM(lang='eng', text=''))
+                        audio.save()
+                    except ID3NoHeaderError:
+                        pass
                     print(f"\rЗагружено: {number}{title}     ")
             if shift >= end or i >=len(links):
                 break
             i += 1
-    # else:
-    #     exit(2)
 
 
 if __name__ == '__main__':
