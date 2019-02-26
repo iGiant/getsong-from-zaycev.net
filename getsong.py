@@ -77,13 +77,15 @@ def get_song(show, download, name):
                             file.write(chunk)
                     try:
                         audio = ID3(title)
+                    except ID3NoHeaderError:
+                        pass
+                    else:
                         song_name = audio['TIT2'][0][:-13]
                         audio.add(TIT2(text=song_name))
                         audio.add(TALB(text=''))
                         audio.add(COMM(lang='eng', text=''))
                         audio.save()
-                    except ID3NoHeaderError:
-                        pass
+
                     print(f"\rЗагружено: {number}{title}     ")
             if shift >= end or i >=len(links):
                 break
